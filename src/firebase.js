@@ -20,7 +20,7 @@ import {
 
 // Canonical Firebase Configuration using project credentials
 const firebaseConfig = {
-  apiKey: "AIzaSyAS8tWcpNzcVFHFQDj8bIhdvWugybZFsx4",
+  apiKey: "AIzaSyCgJonp6PpSYESOofCbtHtSMAL4Jw73lG0",
   authDomain: "project-87d15b7f-7332-458c-a73.firebaseapp.com",
   projectId: "project-87d15b7f-7332-458c-a73",
   storageBucket: "project-87d15b7f-7332-458c-a73.appspot.com",
