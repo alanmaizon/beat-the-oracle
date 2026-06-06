@@ -45,10 +45,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Scores: read-only for clients
+    // Scores: read-only for public, owner can write
     match /scores/{uid} {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
 
     // Meta (leaderboard): read-only for clients

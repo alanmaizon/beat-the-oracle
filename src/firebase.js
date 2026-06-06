@@ -94,3 +94,19 @@ export async function submitPrediction(uid, groupPicks, koPicks) {
     throw error;
   }
 }
+
+// Update User Score in Firestore after playing simulation
+export async function updateUserScore(uid, points, defiance, total) {
+  try {
+    await setDoc(doc(db, "scores", uid), {
+      points,
+      defiance,
+      total,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Failed to update user score:", error);
+    throw error;
+  }
+}

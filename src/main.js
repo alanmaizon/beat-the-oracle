@@ -3,7 +3,8 @@ import {
   db, 
   signInWithGoogle, 
   logout, 
-  submitPrediction 
+  submitPrediction,
+  updateUserScore
 } from "./firebase.js";
 import { 
   GROUPS, 
@@ -27,6 +28,8 @@ import { onAuthStateChanged } from "firebase/auth";
 let currentUser = null;
 let userPrediction = null;
 let userScore = null;
+let userScoreUnsubscribe = null;
+let leaderboardData = null;
 let tournamentConfig = { locked: false, lockAt: "2026-06-11T20:30:00Z" };
 let S = null; // Simulation State
 
@@ -81,12 +84,27 @@ btnSignOut.addEventListener("click", async () => {
 
 // Watch Auth Changes
 onAuthStateChanged(auth, async (user) => {
+  if (userScoreUnsubscribe) {
+    userScoreUnsubscribe();
+    userScoreUnsubscribe = null;
+  }
+
   if (user) {
     currentUser = user;
     authLoggedOut.classList.add("hidden");
     authLoggedIn.classList.remove("hidden");
     userAvatar.src = user.photoURL || "";
     userName.textContent = user.displayName || "Player";
+    
+    // Subscribe to real-time score changes for current user
+    userScoreUnsubscribe = onSnapshot(doc(db, "scores", user.uid), (scoreSnap) => {
+      if (scoreSnap.exists()) {
+        userScore = scoreSnap.data();
+      } else {
+        userScore = null;
+      }
+      renderLeaderboardTable();
+    });
     
     // 1. Fetch user predictions
     const predSnap = await getDoc(doc(db, "predictions", user.uid));
@@ -107,12 +125,14 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentUser = null;
     userPrediction = null;
+    userScore = null;
     authLoggedOut.classList.remove("hidden");
     authLoggedIn.classList.add("hidden");
     bracketStatusMsg.textContent = "⚡ Play unauthenticated or sign in to appear on the leaderboard.";
     document.getElementById("btnStartGroups").textContent = "Start group stage simulation ▸";
   }
   renderSubmitPanel();
+  renderLeaderboardTable();
 });
 
 // Watch Tournament Config
@@ -134,26 +154,27 @@ function isTournamentLocked() {
 }
 
 // ===== REAL-TIME LEADERBOARD =====
-onSnapshot(doc(db, "meta", "leaderboard"), async (snap) => {
+function renderLeaderboardTable() {
   const tbody = document.getElementById("leaderboardBody");
   if (!tbody) return;
 
-  if (snap.exists()) {
-    const data = snap.data();
-    const topN = data.topN || [];
-    const oracleTotal = data.oracleTotal || 0;
+  if (leaderboardData) {
+    const topN = leaderboardData.topN || [];
+    const oracleTotal = leaderboardData.oracleTotal || 0;
 
-    // Merge Oracle into the list
+    // Merge Oracle into the list only if tournament is locked/live
     const rows = topN.map(p => ({ ...p, isOracle: false }));
-    rows.push({
-      uid: "oracle_agent",
-      displayName: "🤖 The Oracle (Benchmark)",
-      photoURL: "",
-      points: oracleTotal,
-      defiance: 0,
-      total: oracleTotal,
-      isOracle: true
-    });
+    if (isTournamentLocked()) {
+      rows.push({
+        uid: "oracle_agent",
+        displayName: "🤖 The Oracle (Benchmark)",
+        photoURL: "",
+        points: oracleTotal,
+        defiance: 0,
+        total: oracleTotal,
+        isOracle: true
+      });
+    }
 
     // Sort: Total Score desc, then Defiance desc
     rows.sort((a, b) => b.total - a.total || b.defiance - a.defiance);
@@ -185,25 +206,30 @@ onSnapshot(doc(db, "meta", "leaderboard"), async (snap) => {
       </tr>`;
     });
 
-    // If logged-in user is not in top N, fetch their score separately and append
-    if (currentUser && !userInTopN) {
-      const scoreDoc = await getDoc(doc(db, "scores", currentUser.uid));
-      if (scoreDoc.exists()) {
-        const uScore = scoreDoc.data();
-        tableHtml += `<tr class="me" style="border-top: 2px dashed var(--gold);">
-          <td class="l rank-num">#${uScore.rank || "—"}</td>
-          <td class="l" style="display:flex;align-items:center;"><img class="user-avatar" style="width:20px;height:20px;margin-right:6px;" src="${currentUser.photoURL || ''}"> ${currentUser.displayName} (You)</td>
-          <td>${uScore.points}</td>
-          <td>${uScore.defiance}</td>
-          <td><b>${uScore.total}</b></td>
-        </tr>`;
-      }
+    // If logged-in user is not in top N, and we have their score, append it
+    if (currentUser && !userInTopN && userScore) {
+      tableHtml += `<tr class="me" style="border-top: 2px dashed var(--gold);">
+        <td class="l rank-num">#${userScore.rank || "—"}</td>
+        <td class="l" style="display:flex;align-items:center;"><img class="user-avatar" style="width:20px;height:20px;margin-right:6px;" src="${currentUser.photoURL || ''}"> ${currentUser.displayName} (You)</td>
+        <td>${userScore.points}</td>
+        <td>${userScore.defiance}</td>
+        <td><b>${userScore.total}</b></td>
+      </tr>`;
     }
 
     tbody.innerHTML = tableHtml;
   } else {
     tbody.innerHTML = `<tr><td colspan="5" class="center"><div class="mono-note">No leaderboard data found. Database must be seeded first.</div></td></tr>`;
   }
+}
+
+onSnapshot(doc(db, "meta", "leaderboard"), (snap) => {
+  if (snap.exists()) {
+    leaderboardData = snap.data();
+  } else {
+    leaderboardData = null;
+  }
+  renderLeaderboardTable();
 });
 
 // ===== TABS CONTROLLER =====
@@ -441,6 +467,18 @@ document.getElementById("btnLockInPredictions").addEventListener("click", async 
 });
 
 function runGroups() {
+  // Prompt logged-in users to lock in their predictions for the leaderboard before simulating
+  if (currentUser && !userPrediction && !isTournamentLocked()) {
+    const lock = confirm("📊 You are signed in, but you haven't locked in your prediction bracket for the Global Leaderboard yet!\n\nWould you like to LOCK IN your predictions now before simulating? (Highly recommended! Select 'Cancel' to simulate casually without saving.)");
+    if (lock) {
+      const lockBtn = document.getElementById("btnLockInPredictions");
+      if (lockBtn) {
+        lockBtn.click();
+        return;
+      }
+    }
+  }
+
   S.resolved = true;
   document.getElementById('simBtn').disabled = true;
   const grid = document.getElementById('groupGrid');
@@ -773,6 +811,17 @@ function endGame() {
   document.getElementById('defyNote').textContent = S.defiance > 0
     ? `You banked ${S.defiance} Defiance points the Oracle could never earn.`
     : `Zero Defiance — you played the book. The Oracle respects you, but it doesn't fear you.`;
+    
+  // If user is logged in, save their score to Firestore to update the leaderboard
+  if (currentUser) {
+    updateUserScore(currentUser.uid, S.you, S.defiance, totalYou)
+      .then(() => {
+        console.log("Score successfully saved to the leaderboard!");
+      })
+      .catch(err => {
+        console.error("Failed to save score to the leaderboard:", err);
+      });
+  }
     
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
