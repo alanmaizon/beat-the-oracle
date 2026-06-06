@@ -1,0 +1,15 @@
+# gcloud ignore file to include dist/ but ignore node_modules and system trash
+.git/
+.gitignore
+node_modules/
+demo-recordings/
+record_demo.js
+key.json
+functions/node_modules/
+.firebase/
+*-debug.log
+.firebaserc
+firestore-debug.log
+ui-debug.log
+.DS_Store
+Thumbs.db
