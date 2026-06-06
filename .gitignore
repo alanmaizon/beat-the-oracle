@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite build outputs
+dist/
+dist-ssr/
+*.local
+
+# Firebase logs and debug outputs
+.firebase/
+*-debug.log
+.firebaserc
+firestore-debug.log
+ui-debug.log
+
+# System files
+.DS_Store
+Thumbs.db
+.gcloudignore

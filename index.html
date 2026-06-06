@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BEAT THE ORACLE · World Cup 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="sky"></div>
+  <div id="glow"></div>
+  <div id="grain"></div>
+
+  <!-- AUTH BAR -->
+  <div class="auth-bar">
+    <div id="authLoggedOut" class="user-profile">
+      <span class="mono-note">Sign in to join the leaderboard ▸</span>
+      <button id="btnSignIn" class="btn-auth">Sign In with Google</button>
+    </div>
+    <div id="authLoggedIn" class="user-profile hidden">
+      <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
+      <span id="userName" class="user-name">Player</span>
+      <button id="btnSignOut" class="btn-auth">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="kicker">A data experiment · FIFA World Cup 2026™</div>
+      <h1>BEAT&nbsp;THE&nbsp;ORACLE</h1>
+      <div class="sub">Can you out-predict the algorithm across all 48 teams?</div>
+    </header>
+
+    <!-- INTRO MODULE -->
+    <section id="intro">
+      <div class="panel fade-in">
+        <p class="lede">An algorithm has already simulated the entire World Cup. Your job is to find the places where it's wrong.</p>
+        <div class="gap"></div>
+        <p>This started as my capstone for the Google Data Analytics certificate: a prediction engine built on <b>125 years of international football results</b>. Every team carries an Elo rating; every match is decided by one probability formula; the whole tournament is simulated thousands of times to estimate who lifts the trophy.</p>
+        <div class="gap"></div>
+        <p>The <b>Oracle</b> always backs the higher-rated side. You don't have to. Predict the real 2026 group stage and knockouts yourself — match it to keep pace, but call an <b style="color:var(--defy1)">upset it never saw</b> and you bank <b>Defiance</b> points the model can't earn. Out-think the machine.</p>
+      </div>
+
+      <!-- TABS: ODDS VS LEADERBOARD -->
+      <div class="tabs">
+        <button id="tabOddsBtn" class="tab-btn active">Oracle Title Odds</button>
+        <button id="tabLeaderboardBtn" class="tab-btn">Global Leaderboard</button>
+      </div>
+
+      <!-- TAB 1: ORACLE ODDS -->
+      <div id="tabOdds" class="panel">
+        <div class="kicker">The Oracle's pre-tournament read</div>
+        <h3 style="font-size:1.2rem;margin:6px 0 12px">Title probability — 5,000 full-tournament simulations</h3>
+        <div id="oracleBoard">
+          <div class="mono-note">Running simulations…</div>
+        </div>
+        <div class="gap"></div>
+        <p class="mono-note">P(A beats B) = 1 / (1 + 10^((Eloᴮ − Eloᴬ)/400)). Hosts get a small home boost. Ratings: eloratings.net. This is the engine you're trying to outguess.</p>
+      </div>
+
+      <!-- TAB 2: GLOBAL LEADERBOARD -->
+      <div id="tabLeaderboard" class="panel hidden">
+        <div class="kicker">Real-time standings</div>
+        <h3 style="font-size:1.2rem;margin:6px 0 12px">Global Leaderboard</h3>
+        <div class="mono-note" style="margin-bottom:12px">Compare scores with players globally. The Oracle is listed as a benchmark. Can you beat it?</div>
+        <table class="leadtable">
+          <thead>
+            <tr>
+              <th class="l">Rank</th>
+              <th class="l">Player</th>
+              <th>Pts</th>
+              <th>Defiance</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <tr>
+              <td colspan="5" class="center"><div class="mono-note">Loading leaderboard data…</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="center" style="margin-top:24px">
+        <!-- LOCK NOTIFICATION FOR REGISTERED USER -->
+        <div id="bracketStatusMsg" class="mono-note" style="margin-bottom: 12px; font-weight: 600; color: var(--gold);"></div>
+        
+        <button id="btnStartGroups" class="btn-primary">Start group stage simulation ▸</button>
+        <div class="gap"></div>
+        <button class="btn-ghost" onclick="document.getElementById('about').classList.toggle('hidden')">About / how it was built</button>
+      </div>
+
+      <div id="about" class="panel hidden" style="margin-top:16px">
+        <div class="kicker">How it was built</div>
+        <h3 style="font-size:1.15rem;margin:6px 0 10px">From capstone to game</h3>
+        <p><b>The data.</b> Four datasets — historical World Cups, every World Cup match, player records, and an Elo rating series spanning 1901–2026. Cleaning and EDA were done in a Jupyter notebook (pandas); this build embeds the cleaned per-team ratings for the real 48 qualifiers and their actual group draw.</p>
+        <div class="gap"></div>
+        <p><b>The algorithm.</b> Group tables come from a round-robin simulation (Elo win/draw/goal model); the knockout uses single-draw resolution; title odds come from a Monte Carlo over the full bracket. Transparent probability, in homage to <b>Alan Turing</b> — born this June in 1912 — whose Bayesian methods broke Enigma at Bletchley. The Oracle is the machine; you're the human in the loop.</p>
+        <div class="gap"></div>
+        <p><b>Google AI.</b> Scouting reports are generated per team; in the deployed build the call routes to the <b>Gemini API</b> via Cloud Functions (using cached Firestore reports for instant loads, with graceful client-side fallback).</p>
+      </div>
+    </section>
+
+    <!-- GROUP STAGE -->
+    <section id="groups" class="hidden">
+      <div class="score-hud">
+        <div class="chip">YOU <b id="hudYouG">0</b></div>
+        <div class="chip oracle">ORACLE <b id="hudOracleG">0</b></div>
+        <div class="chip defy">DEFIANCE <b id="hudDefyG">0</b></div>
+      </div>
+      <div class="phase-head">
+        <div><div class="kicker">Phase 1 of 2</div><h2>Group Stage</h2></div>
+        <div class="mono-note" id="grpHint">Tap the 2 teams you think advance from each group. Top 2 qualify; 8 best 3rd-place teams also reach the Round of 32.</div>
+      </div>
+      
+      <div class="groups" id="groupGrid"></div>
+
+      <!-- LOCK-IN SIGN IN/SUBMIT PANEL -->
+      <div id="submitBracketPanel" class="submit-panel hidden">
+        <div class="kicker" style="color: var(--amber)">Lock in your predictions</div>
+        <h3 style="font-size:1.1rem; margin: 6px 0 10px;">Compete on the Global Leaderboard</h3>
+        <p class="mono-note" style="margin-bottom:14px">Locking in saves this bracket to your profile. Your scores will update automatically as real matches finish!</p>
+        <button id="btnLockInPredictions" class="btn-primary" style="padding: 10px 20px; font-size: 0.85rem;" disabled>Lock in bracket</button>
+      </div>
+
+      <div class="center" style="margin-top:22px">
+        <button class="btn-primary" id="simBtn" disabled>Simulate the group stage ▸</button>
+      </div>
+    </section>
+
+    <!-- KNOCKOUT -->
+    <section id="knock" class="hidden">
+      <div class="score-hud">
+        <div class="chip">YOU <b id="hudYou">0</b></div>
+        <div class="chip oracle">ORACLE <b id="hudOracle">0</b></div>
+        <div class="chip defy">DEFIANCE <b id="hudDefy">0</b></div>
+      </div>
+      <div class="phase-head">
+        <div><div class="kicker" id="koKicker">Phase 2 of 2</div><h2 id="koTitle">Round of 32</h2></div>
+        <div class="mono-note" id="koHint">Pick a winner in every tie.</div>
+      </div>
+      
+      <div class="matches" id="matches"></div>
+      
+      <div class="center" style="margin-top:20px">
+        <button class="btn-primary" id="advanceBtn" disabled>Play the round ▸</button>
+      </div>
+    </section>
+
+    <!-- FINAL RESULT -->
+    <section id="final" class="hidden center">
+      <div class="panel fade-in">
+        <div class="kicker">Full time</div>
+        <div class="grade" id="grade">—</div>
+        <p class="lede" id="verdictLine"></p>
+        <div class="gap"></div>
+        <div>World Champions</div>
+        <div class="champ" id="champLine">—</div>
+        <div class="verdict">
+          <div class="vbox"><div class="n" id="fYou">0</div><div class="mono-note">YOUR SCORE</div></div>
+          <div class="vbox"><div class="n" id="fOracle">0</div><div class="mono-note">ORACLE</div></div>
+          <div class="vbox"><div class="n" style="color:var(--defy1)" id="fDefy">0</div><div class="mono-note">DEFIANCE</div></div>
+        </div>
+        <p id="defyNote" class="dedication"></p>
+        <div class="gap"></div>
+        <button id="btnReload" class="btn-primary">Run it again ▸</button>
+      </div>
+      <div class="panel dedication center">
+        In homage to Alan Turing (1912–1954), who taught machines to reason with probability.
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

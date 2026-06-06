@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Config: read-only for clients
+    match /config/tournament {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Teams: read-only for clients
+    match /teams/{code} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Oracle picks and title odds: read-only for clients
+    match /oracle/current {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Users: only the owner can read or write their user profile
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Predictions:
+    // - Owner can read anytime; others can read only after tournament is locked.
+    // - Owner can create/update only if tournament is not locked.
+    // - Deletes are not allowed.
+    match /predictions/{uid} {
+      allow read: if request.auth != null && (
+        request.auth.uid == uid || 
+        get(/databases/$(database)/documents/config/tournament).data.locked == true
+      );
+      allow create, update: if request.auth != null && 
+        request.auth.uid == uid && 
+        get(/databases/$(database)/documents/config/tournament).data.locked == false;
+      allow delete: if false;
+    }
+
+    // Results: read-only for clients
+    match /results/{matchId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Scores: read-only for clients
+    match /scores/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Meta (leaderboard): read-only for clients
+    match /meta/leaderboard {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Scouting cache: read-only for clients
+    match /scouting/{code} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

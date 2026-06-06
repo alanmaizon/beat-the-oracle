@@ -1,0 +1,17 @@
+{
+  "name": "beat-the-oracle",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --outDir dist",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "firebase": "^10.8.0"
+  },
+  "devDependencies": {
+    "vite": "^5.1.0"
+  }
+}
